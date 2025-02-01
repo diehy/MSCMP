@@ -1,0 +1,22 @@
+<Project>
+	<PropertyGroup>
+		 <PlatformTarget>x64</PlatformTarget>
+		 <Configurations>Debug;Release</Configurations>
+		 <LangVersion>latest</LangVersion>
+		 <OutDir>$(SolutionDir)\bin\$(Configuration)\</OutDir>
+		 <MSCMP_GAME_PATH>C:\Program Files (x86)\Steam\steamapps\common\My Summer Car</MSCMP_GAME_PATH>
+	</PropertyGroup>
+
+	<Target Name="VerifyMSCPath" BeforeTargets="ResolveAssemblyReferences">
+		<Error Condition="!Exists('$(MSCMP_GAME_PATH)')"
+               Text="My Summer Car was not found on this path: $(MSCMP_GAME_PATH)!. Please verify the path in Directory.Build.props." />
+	</Target>
+
+	<Target Name="CopySteamAPI" AfterTargets="Build">
+		<ItemGroup>
+			<SteamApi Include="$(SolutionDir)\3rdparty\steamapi\steam_api64.dll" />
+		</ItemGroup>
+		<Copy SourceFiles="@(SteamApi)" DestinationFolder="$(OutDir)"
+              Condition="!Exists('$(OutDir)\steam_api64.dll')" />
+	</Target>
+</Project>
