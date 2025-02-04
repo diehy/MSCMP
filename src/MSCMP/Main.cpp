@@ -1,186 +1,156 @@
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <Windows.h>
-#include <stdio.h>
-#include <assert.h>
 #include "steam_api.h"
 
-const AppId_t GAME_APP_ID			= 516750;
-const char *const GAME_APP_ID_STR	= "516750";
-const char *const ExecutableName	= "mysummercar.exe";
+#pragma warning(disable : 6387)
 
-#define GAME_FULL_NAME				"My Summer Car"
-#define PROJECT_FULL_NAME			GAME_FULL_NAME " Multiplayer"
-
-/**
- * Inject DLL into process.
- *
- * @param[in] process Process handle.
- * @param[in] dllPath DLL path.
- * @return @c false on case of injection failure @c true otherwise.
- */
-bool InjectDll(const HANDLE process, const char *const dllPath)
-{
-	const size_t libPathLen = strlen(dllPath) + 1;
-	SIZE_T bytesWritten = 0;
-
-	void *const remoteLibPath = VirtualAllocEx(process, NULL, libPathLen, MEM_COMMIT, PAGE_READWRITE);
-	if (!remoteLibPath) {
-		return false;
-	}
-
-	if (!WriteProcessMemory(process, remoteLibPath, dllPath, libPathLen, &bytesWritten)) {
-		VirtualFreeEx(process, remoteLibPath, 0, MEM_RELEASE);
-		return false;
-	}
-
-	const HMODULE kernel32dll = GetModuleHandle("Kernel32");
-	if (!kernel32dll) {
-		VirtualFreeEx(process, remoteLibPath, 0, MEM_RELEASE);
-		return false;
-	}
-
-	const FARPROC pfnLoadLibraryA = GetProcAddress(kernel32dll, "LoadLibraryA");
-	if (!pfnLoadLibraryA) {
-		FreeModule(kernel32dll);
-		VirtualFreeEx(process, remoteLibPath, 0, MEM_RELEASE);
-		return false;
-	}
-
-	const HANDLE hThread = CreateRemoteThread(process, NULL, 0, (LPTHREAD_START_ROUTINE)pfnLoadLibraryA, remoteLibPath, 0, NULL);
-	if (!hThread) {
-		FreeModule(kernel32dll);
-		VirtualFreeEx(process, remoteLibPath, 0, MEM_RELEASE);
-		return false;
-	}
-
-	WaitForSingleObject(hThread, INFINITE);
-	CloseHandle(hThread);
-
-	FreeModule(kernel32dll);
-	VirtualFreeEx(process, remoteLibPath, 0, MEM_RELEASE);
-	return true;
+static void LogError(const std::wstring& message) {
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(console, 71);
+	std::wcerr << message << std::endl;
+	SetConsoleTextAttribute(console, 7);
 }
 
-//! Steam api wrapper.
-struct SteamWrapper
+int wmain(int argc, wchar_t* argv[])
 {
-	bool Init(void)
-	{
-		if (!SteamAPI_IsSteamRunning()) {
-			MessageBox(NULL, "To run " PROJECT_FULL_NAME " your Steam client must be running.", "Fatal error", MB_ICONERROR);
-			return false;
-		}
-
-		if (!SteamAPI_Init()) {
-			MessageBox(NULL, "Failed to initialize steam.", "Fatal error", MB_ICONERROR);
-			return false;
-		}
-
-		// XXX: We may want to eventually handle steam errors here, some users have reported
-		// that they were unable to play game as steam fails to initialize for them, in most cases
-		// making OS privilages for both steam and game process to be the same level was solving the problem.
-		return true;
+	// Get current working directory first.
+	wchar_t path[MAX_PATH];
+	GetModuleFileNameW(nullptr, path, MAX_PATH);
+	std::filesystem::path workingDir = std::filesystem::path(path).parent_path();
+	
+	// File integrity.
+	std::filesystem::path clientPath = workingDir / L"MSCMP.Client.dll";
+	std::filesystem::path injectorPath = workingDir / L"MSCMP.Injector.dll";
+	if (!std::filesystem::exists(clientPath) || !std::filesystem::exists(injectorPath)) {
+		LogError(L"Critical mod files are missing! Ensure that MSCMP.Client.dll and MSCMP.Injector.dll are present");
+		system("pause");
+		return -1;
 	}
 
-	~SteamWrapper(void)
-	{
+	// Create a steam_appid.txt file if it's missing.
+	// This is needed for SteamAPI.
+	std::filesystem::path appIdPath = workingDir / L"steam_appid.txt";
+	if (!std::filesystem::exists(appIdPath)) {
+		std::wofstream appId(appIdPath);
+		appId << L"516750";
+	}
+
+	// Initialize.
+	if (!SteamAPI_Init()) {
+		LogError(L"SteamAPI_Init() failed! Ensure Steam is running, you own MSC, and Steam is online.");
+		system("pause");
+		return -1;
+	}
+
+	// Check if the game is installed.
+	if (!SteamApps()->BIsAppInstalled(516750)) {
 		SteamAPI_Shutdown();
-	}
-};
-
-/**
- * Launcher entry point.
- *
- * @see https://msdn.microsoft.com/en-us/library/windows/desktop/ms633559(v=vs.85).aspx
- */
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-	SteamWrapper steam;
-	if (!steam.Init()) {
-		return 0;
+		LogError(L"My Summer Car is not installed on your local machine");
+		system("pause");
+		return -1;
 	}
 
-	ISteamApps *const steamApps = SteamApps();
-
-	if (!steamApps->BIsAppInstalled(GAME_APP_ID)) {
-		MessageBox(NULL, "To run " PROJECT_FULL_NAME " you need to have installed " GAME_FULL_NAME " game.", "Fatal error", MB_ICONERROR);
-		return 0;
+	// Get the install folder.
+	std::vector<char> installFolder(MAX_PATH);
+	uint32 bufferSize = SteamApps()->GetAppInstallDir(516750, installFolder.data(), MAX_PATH);
+	if (bufferSize == 0 || installFolder[0] == '\0') {
+		SteamAPI_Shutdown();
+		LogError(L"Buffer is empty - Failed to retrieve MSC directory");
+		system("pause");
+		return -1;
 	}
 
-	char installFolder[MAX_PATH] = { 0 };
-	steamApps->GetAppInstallDir(GAME_APP_ID, installFolder, MAX_PATH);
+	// Store the real install path.
+	std::wstring gameInstallFolder(bufferSize, L'\0');
+	int wideLength = MultiByteToWideChar(CP_UTF8, 0, installFolder.data(), -1, &gameInstallFolder[0], bufferSize);
+	gameInstallFolder.resize(wideLength - 1); // Resize the string to exclude the null terminator
 
-	char gameExePath[MAX_PATH] = { 0 };
-	sprintf(gameExePath, "%s\\%s", installFolder, ExecutableName);
-
-	STARTUPINFO startupInfo = { 0 };
-	PROCESS_INFORMATION processInformation = { 0 };
-	startupInfo.cb = sizeof(startupInfo);
-
-	SetEnvironmentVariable("SteamAppID", GAME_APP_ID_STR);
-
-	if (GetFileAttributes(gameExePath) == INVALID_FILE_ATTRIBUTES) {
-		MessageBox(NULL, "Unable to find game .exe file.", "Fatal error", MB_ICONERROR);
-		return 0;
+	// Verify the game executable exists.
+	std::filesystem::path exePath = gameInstallFolder + L"\\mysummercar.exe";
+	if (!std::filesystem::exists(exePath)) {
+		SteamAPI_Shutdown();
+		LogError(L"Game executable is missing from the install directory! Verify integrity of game files");
+		system("pause");
+		return -1;
 	}
 
-	if (!CreateProcess(gameExePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, installFolder, &startupInfo, &processInformation)) {
-		MessageBox(NULL, "Cannot create game process.", "Fatal error", MB_ICONERROR);
-		return 0;
+	STARTUPINFOW si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+
+	// Construct the command line.
+	std::wstring cmdLine = argv[0];
+	for (int i = 1; i < argc; ++i) {
+		cmdLine += L" ";
+		cmdLine += argv[i];
 	}
 
-	// Helper lambda used to show fatal error message and terminate the process.
-
-	auto ShowFatalError = [&processInformation](const char *const message)
-	{
-		MessageBox(NULL, message, "Fatal error", MB_ICONERROR);
-		TerminateProcess(processInformation.hProcess, 0);
-	};
-
-	// Ensure that player uses 64bit build of the game, back in the day
-	// we were not supporting 64 bit version and asked users to switch to default_32bit
-	// branch which may cause some of them still using them. Let them know that they have
-	// to use default branch which is 64 bit as of 21.10.2018 and hopefully will be
-	// like that forever and ever (cheers Epica fans :)).
-
-	BOOL Wow64Process = FALSE;
-	if (!IsWow64Process(processInformation.hProcess, &Wow64Process)) {
-		ShowFatalError("Failed to determinate game architecture.");
-		return 0;
+	// TODO: Temporary cmdline fix because I have poo poo PC.
+	// Also too lazy to launch a batch file.
+	if (SteamUser()->GetSteamID() == CSteamID(static_cast<uint64_t>(76561198056341327))) {
+		cmdLine += L" ";
+		cmdLine += L"-force-d3d9";
 	}
 
-	// We don't need to check if os is 32bit as the launcher is 64bit only application.
+	// Set the environment variable. The game will automatically inherit this.
+	SetEnvironmentVariableW(L"MSCMP_CLIENT_PATH", clientPath.c_str());
 
-	if (Wow64Process) {
-		ShowFatalError("Mod only supports 64bit version of " GAME_FULL_NAME ". Please switch to default branch to play the mod.");
-		return 0;
+	// Start the game process
+	if (!CreateProcessW(exePath.c_str(), cmdLine.data(), nullptr, nullptr, FALSE, NORMAL_PRIORITY_CLASS, nullptr, gameInstallFolder.c_str(), &si, &pi)) {
+		LogError(L"Failed to start the game process. Error code: " + std::to_wstring(GetLastError()));
+		system("pause");
+		return -1;
 	}
 
-	char cPath[MAX_PATH] = { 0 };
-	GetModuleFileName(NULL, cPath, MAX_PATH);
-	char injectorDllPath[MAX_PATH] = { 0 };
+	// Wait for the configuration window to show up.
+	WaitForInputIdle(pi.hProcess, INFINITE);
 
-	size_t LauncherPathLength = strlen(cPath);
-	for (size_t i = LauncherPathLength - 1; i > 0; --i) {
-		if (cPath[i] == '\\') {
-			cPath[i] = 0;
-			break;
-		}
+	// Lambda function for cleanup.
+	auto CleanupProcess = [&pi](const std::wstring& message) {
+		TerminateProcess(pi.hProcess, 1);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		SteamAPI_Shutdown();
+		LogError(message);
+		system("pause");
+		};
+
+	// Allocate memory for DLL injection
+	LPVOID baseAddress = VirtualAllocEx(pi.hProcess, nullptr, injectorPath.wstring().length() * sizeof(wchar_t) + 1, MEM_COMMIT, PAGE_READWRITE);
+	if (!baseAddress) {
+		CleanupProcess(L"Failed to reserve virtual memory! Return value: " + std::to_wstring(GetLastError()));
+		return -1;
 	}
 
-	sprintf(injectorDllPath, "%s\\MSCMPInjector.dll", cPath);
-
-	if (GetFileAttributes(injectorDllPath) == INVALID_FILE_ATTRIBUTES) {
-		ShowFatalError("Cannot find MSCMPInjector.dll file.");
-		return 0;
+	// Write injector path to process memory
+	if (!WriteProcessMemory(pi.hProcess, baseAddress, injectorPath.c_str(), (injectorPath.wstring().length() + 1) * sizeof(wchar_t), nullptr)) {
+		VirtualFreeEx(pi.hProcess, baseAddress, 0, MEM_RELEASE);
+		CleanupProcess(L"Failed to write injector path to the reserved memory region! Return value: " + std::to_wstring(GetLastError()));
+		return -1;
 	}
 
-	if (!InjectDll(processInformation.hProcess, injectorDllPath)) {
-		ShowFatalError("Could not inject dll into the game process. Please try launching the game again.");
-		return 0;
+	// Get LoadLibraryW address and create remote thread
+	HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+	FARPROC loadLibraryAddress = GetProcAddress(kernel32, "LoadLibraryW");
+	if (!loadLibraryAddress) {
+		VirtualFreeEx(pi.hProcess, baseAddress, 0, MEM_RELEASE);
+		CleanupProcess(L"Failed to get address of LoadLibraryW from kernel32.dll! Return value: " + std::to_wstring(GetLastError()));
+		return -1;
 	}
 
-	ResumeThread(processInformation.hThread);
-	return 1;
+	HANDLE remoteThread = CreateRemoteThread(pi.hProcess, nullptr, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddress, baseAddress, 0, nullptr);
+	if (!remoteThread) {
+		VirtualFreeEx(pi.hProcess, baseAddress, 0, MEM_RELEASE);
+		CleanupProcess(L"Failed to create remote thread! Return value: " + std::to_wstring(GetLastError()));
+		return -1;
+	}
+
+	// Wait for injector to finish and close up.
+	WaitForSingleObject(remoteThread, INFINITE);
+	CloseHandle(remoteThread);
+	VirtualFreeEx(pi.hProcess, baseAddress, 0, MEM_RELEASE);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	return 0;
 }
-
-/* EOF */

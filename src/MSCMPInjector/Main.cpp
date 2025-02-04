@@ -1,284 +1,95 @@
-#include <Windows.h>
-#include <process.h>
-#include <ShlObj.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <iostream>
+#include <filesystem>
+#include <psapi.h>
 
-#include "MonoLoader.h"
-#include "MemFunctions.h"
+typedef VOID MonoDomain;
+typedef VOID MonoThread;
+typedef VOID MonoImage;
+typedef VOID MonoAssembly;
+typedef VOID MonoClass;
+typedef VOID MonoMethod;
+typedef VOID MonoObject;
 
-#include <exception>
+typedef MonoDomain* (__cdecl* mono_get_root_domain_t)();
+typedef MonoThread* (__cdecl* mono_thread_attach_t)(MonoDomain* mDomain);
+typedef MonoImage* (__cdecl* mono_assembly_get_image_t)(MonoAssembly* assembly);
+typedef MonoAssembly* (__cdecl* mono_domain_assembly_open_t)(MonoDomain* mDomain, const char* filepath);
+typedef MonoClass* (__cdecl* mono_class_from_name_t)(MonoImage* image, const char* name_space, const char* name);
+typedef MonoMethod* (__cdecl* mono_class_get_method_from_name_t)(MonoClass* mclass, const char* name, int param_count);
+typedef MonoObject* (__cdecl* mono_runtime_invoke_t)(MonoMethod* method, void* obj, void** params, MonoObject** exc);
 
-Mono mono;
-
-void GetModulePath(HMODULE module, char *path)
-{
-	GetModuleFileName(module, path, MAX_PATH);
-	size_t pathLen = strlen(path);
-	for (size_t i = pathLen - 1; i > 0; --i) {
-		if (path[i] == '\\') {
-			path[i] = 0;
-			break;
-		}
-	}
+static bool WriteErrorMessage(const std::string message) {
+    MessageBoxA(NULL, message.c_str(), "MSCMP", MB_ICONERROR);
+    ExitProcess(0);
+    return FALSE;
 }
 
+static FARPROC GetMonoFunctionAddress(HMODULE module, const char* procName) {
+    FARPROC proc_address = GetProcAddress(module, procName);
+    if (!proc_address) {
+        WriteErrorMessage("Failed to get address for mono function: " + std::string(procName) + "!");
+    }
 
-static void ShowMessageBox(MonoString *message, MonoString *title)
-{
-	if (message && title)
-	{
-		char *messageText = mono.mono_string_to_utf8(message);
-		char *titleText = mono.mono_string_to_utf8(title);
-
-		if (messageText && titleText)
-		{
-			MessageBox(NULL, messageText, titleText, NULL);
-		}
-
-		mono.g_free(messageText);
-		mono.g_free(titleText);
-	}
+    return proc_address;
 }
 
-FILE *unityLog = nullptr;
-
-bool RunMP(const char *clientDllPath)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-	// Register our internal calls.
+    if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+        DisableThreadLibraryCalls(hModule);
 
-	mono.mono_add_internal_call ("MSCMP.Client::ShowMessageBox", ShowMessageBox);
+        char buf[256];
+        GetEnvironmentVariableA("MSCMP_CLIENT_PATH", buf, sizeof(buf));
 
-	MonoDomain* domain = mono.mono_domain_get();
-	if (! domain)
-	{
-		return false;
-	}
+        HMODULE mono = GetModuleHandleA("mono.dll");
+        if (!mono) {
+            WriteErrorMessage("Failed to get mono module!");
+            return FALSE;
+        }
 
-	MonoAssembly* domainassembly = mono.mono_domain_assembly_open(domain, clientDllPath);
-	if (!domainassembly)
-	{
-		return false;
-	}
+        mono_get_root_domain_t mono_get_root_domain = (mono_get_root_domain_t)GetMonoFunctionAddress(mono, "mono_get_root_domain");
+        mono_thread_attach_t mono_thread_attach = (mono_thread_attach_t)GetMonoFunctionAddress(mono, "mono_thread_attach");
+        mono_class_from_name_t mono_class_from_name = (mono_class_from_name_t)GetMonoFunctionAddress(mono, "mono_class_from_name");
+        mono_class_get_method_from_name_t mono_class_get_method_from_name = (mono_class_get_method_from_name_t)GetMonoFunctionAddress(mono, "mono_class_get_method_from_name");
+        mono_runtime_invoke_t mono_runtime_invoke = (mono_runtime_invoke_t)GetMonoFunctionAddress(mono, "mono_runtime_invoke");
+        mono_domain_assembly_open_t mono_domain_assembly_open = (mono_domain_assembly_open_t)GetMonoFunctionAddress(mono, "mono_domain_assembly_open");
+        mono_assembly_get_image_t mono_assembly_get_image = (mono_assembly_get_image_t)GetMonoFunctionAddress(mono, "mono_assembly_get_image");
 
-	MonoImage* image = mono.mono_assembly_get_image(domainassembly);
-	if (!image)
-	{
-		return false;
-	}
+        MonoDomain* rootDomain = mono_get_root_domain();
+        if (!rootDomain) {
+            return WriteErrorMessage("Failed to get root domain!");
+        }
 
-	MonoClass* monoClass = mono.mono_class_from_name(image, "MSCMP", "Client");
-	if (!monoClass)
-	{
-		return false;
-	}
+        mono_thread_attach(rootDomain);
 
-	MonoMethod* monoClassMethod = mono.mono_class_get_method_from_name(monoClass, "Start", 0);
-	if (!monoClassMethod)
-	{
-		return false;
-	}
+        MonoAssembly* clientAsm = mono_domain_assembly_open(rootDomain, buf);
+        if (!clientAsm) {
+            WriteErrorMessage("Failed to open client assembly into the Mono domain!");
+            return FALSE;
+        }
 
-	// As there is no 'gold method' of verifying that the call succeeded (at least not documented).
-	// We trust it and just invoke the method.
+        MonoImage* clientImage = mono_assembly_get_image(clientAsm);
+        if (!clientImage) {
+            WriteErrorMessage("Failed to open client assembly image!");
+            return FALSE;
+        }
 
-	mono.mono_runtime_invoke(monoClassMethod, nullptr, nullptr, nullptr);
-	return true;
-}
+        MonoClass* entrypointClass = mono_class_from_name(clientImage, "MSCMP", "Client");
+        if (!entrypointClass) {
+            WriteErrorMessage("Failed to get MSCMP::Client class entrypoint!");
+            return FALSE;
+        }
 
-char MonoDllPath[MAX_PATH] = { 0 };
-char ClientDllPath[MAX_PATH] = { 0 };
+        MonoMethod* entrypointMethod = mono_class_get_method_from_name(entrypointClass, "Start", 0);
+        if (!entrypointMethod) {
+            WriteErrorMessage("Failed to get Client::Start() entrypoint method!");
+            return FALSE;
+        }
 
-/**
- * Custom unity log handler.
- */
-int _cdecl UnityLog(int a1, const char *message, va_list args)
-{
-	if (unityLog) {
-		fprintf(unityLog, "[%i] ", a1);
-		vfprintf(unityLog, message, args);
-		va_end(args);
-#ifdef _DEBUG
-		fflush(unityLog);
-#endif
-	}
-	return 0;
-}
+        mono_runtime_invoke(entrypointMethod, nullptr, nullptr, nullptr);
+    }
 
-void Injector_SetupLogAndTracing()
-{
-	mono.mono_unity_set_vprintf_func([](const char *message, va_list args) -> size_t
-	{
-		UnityLog(666, message, args);
-		return 1;
-	});
-	mono.mono_trace_set_level_string("debug");
-	mono.mono_trace_set_mask_string("all");
-
-}
-void Injector_SetupDebugger()
-{
-	// If MSCMP is not build in debug configuration require explicit
-	// unity debugging to be active. Otherwise always setup debugger.
-#ifndef _DEBUG
-	if (!getenv("UNITY_GIVE_CHANCE_TO_ATTACH_DEBUGGER"))
-	{
-		return;
-	}
-#endif
-
-	const char *argv[] = {
-		"--debugger-agent=transport=dt_socket,embedding=1,server=y,address=127.0.0.1:56000,defer=y"
-	};
-	mono.mono_jit_parse_options(1, const_cast<char **>(argv));
-	mono.mono_debug_init(MONO_DEBUG_FORMAT_MONO);
-}
-
-void Injector_RunMP()
-{
-	if (!RunMP(ClientDllPath))
-	{
-		MessageBox(NULL, "Failed to run multiplayer mod!", "MSCMP", MB_ICONERROR);
-		ExitProcess(0);
-	}
-}
-
-/** Memory address where unit custom log callback should be set. */
-extern ptrdiff_t CustomLogCallbackAddress = 0;
-
-/**
- * Method used to install architecture dependent hooks.
- *
- * It's implementation can be found in HooksX86.cpp or HooksX64.cpp files.
- */
-void InstallHooks(ptrdiff_t moduleAddress);
-
-
-/**
- * Handles fatal error.
- *
- * @param[in] message The error message.
- */
-static void FatalError(const char *const message)
-{
-	MessageBox(NULL, message, "MSCMP", MB_ICONERROR);
-	ExitProcess(0);
-}
-
-
-/**
- * Try opening unity log file.
- *
- * If file does not exists it is being created.
- *
- * @param[in] path The path where to open file.
- */
-static bool OpenUnityLog(const char *const path)
-{
-	unityLog = fopen(path, "w+");
-	return unityLog != nullptr;
-}
-
-const char UNITY_LOG_FILE[] = "\\unityLog.txt";
-
-/**
- * Setups unity log.
- */
-static bool SetupUnityLog()
-{
-	// First try to create unit log in app data.
-
-	char appData[MAX_PATH] = { 0 };
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, appData))) {
-		strcat(appData, "\\MSCMP");
-
-		bool directoryExists = (GetFileAttributes(appData) & FILE_ATTRIBUTE_DIRECTORY) != 0;
-		if (!directoryExists)
-		{
-			directoryExists = CreateDirectory(appData, NULL) == TRUE;
-		}
-
-		if (directoryExists)
-		{
-			strcat(appData, UNITY_LOG_FILE);
-			if (OpenUnityLog(appData))
-			{
-				return true;
-			}
-		}
-	}
-
-	// Fallback, try to create unityLog in MSCMP installation directory.
-
-	char unityLogPath[MAX_PATH] = { 0 };
-	GetModulePath(GetModuleHandle("MSCMPInjector.dll"), unityLogPath);
-	strcat(unityLogPath, UNITY_LOG_FILE);
-
-	return OpenUnityLog(unityLogPath);
-}
-
-
-/**
- * The injector DLL entry point.
- */
-BOOL WINAPI DllMain(HMODULE hModule, unsigned Reason, void *Reserved)
-{
-	switch (Reason) {
-	case DLL_PROCESS_ATTACH:
-	{
-		DisableThreadLibraryCalls(hModule);
-
-		if (!SetupUnityLog())
-		{
-			FatalError("Unable to create unity log!\nTry restarting mod as administrator.");
-			return FALSE;
-		}
-
-		// Make sure we have mono dll to work with.
-
-		GetModulePath(GetModuleHandle(0), MonoDllPath);
-		strcat(MonoDllPath, "\\mysummercar_Data\\Mono\\mono.dll");
-
-		if (GetFileAttributes(MonoDllPath) == INVALID_FILE_ATTRIBUTES)
-		{
-			FatalError("Unable to find mono.dll!");
-			return FALSE;
-		}
-
-		// Now make sure we have client file. Do it here so we will not do any redundant processing.
-
-		GetModulePath(GetModuleHandle("MSCMPInjector.dll"), ClientDllPath);
-		strcat(ClientDllPath, "\\MSCMPClient.dll");
-
-		if (GetFileAttributes(ClientDllPath) == INVALID_FILE_ATTRIBUTES)
-		{
-			FatalError("Unable to find mod client files!");
-			return FALSE;
-		}
-
-		if (!mono.Setup(MonoDllPath))
-		{
-			FatalError("Unable to setup mono loader!");
-			return FALSE;
-		}
-
-		const ptrdiff_t moduleAddress = reinterpret_cast<ptrdiff_t>(GetModuleHandle(NULL));
-		InstallHooks(moduleAddress);
-
-		// Common memory operations:
-
-		// Set custom log callback.
-
-		UnprotectedMemoryScope unprotect(CustomLogCallbackAddress, sizeof(ptrdiff_t));
-		WriteValue<ptrdiff_t>(CustomLogCallbackAddress, reinterpret_cast<ptrdiff_t>(UnityLog));
-	}
-	break;
-
-	case DLL_PROCESS_DETACH:
-		if (unityLog)
-		{
-			fclose(unityLog);
-			unityLog = nullptr;
-		}
-		break;
-	}
-	return TRUE;
+    return TRUE;
 }

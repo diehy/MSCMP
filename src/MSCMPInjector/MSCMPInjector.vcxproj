@@ -51,12 +51,14 @@
     <OutDir>$(SolutionDir)..\bin\$(Configuration)\$(Platform)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)3rdparty\mono-2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <TargetName>MSCMP.Injector</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)3rdparty\mono-2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <TargetName>MSCMP.Injector</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -87,17 +89,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Hooks.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MemFunctions.cpp" />
-    <ClCompile Include="MonoLoader.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="MemFunctions.h" />
-    <ClInclude Include="MonoLoader.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <MASM Include="HooksASM.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

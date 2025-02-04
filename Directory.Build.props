@@ -14,7 +14,7 @@
 
 	<Target Name="CopySteamAPI" AfterTargets="Build">
 		<ItemGroup>
-			<SteamApi Include="$(SolutionDir)\3rdparty\steamapi\steam_api64.dll" />
+			<SteamApi Include="$(SolutionDir)\deps\steamsdk-161\steam_api64.dll" />
 		</ItemGroup>
 		<Copy SourceFiles="@(SteamApi)" DestinationFolder="$(OutDir)"
               Condition="!Exists('$(OutDir)\steam_api64.dll')" />
