@@ -1,0 +1,71 @@
+ManifestFileVersion: 0
+CRC: 2709949525
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 9cbde6e1ddbae8dccbef83356f7232bb
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: e6b505233ec47536ebaa8260972faf30
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 74
+  Script: {instanceID: 0}
+- Class: 111
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: -619905303, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 1077351063, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 1997211142, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 1392445389, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 1301386320, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: -765806418, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 708705254, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 114
+  Script: {fileID: 1980459831, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 128
+  Script: {instanceID: 0}
+- Class: 137
+  Script: {instanceID: 0}
+- Class: 213
+  Script: {instanceID: 0}
+- Class: 222
+  Script: {instanceID: 0}
+- Class: 223
+  Script: {instanceID: 0}
+- Class: 224
+  Script: {instanceID: 0}
+Assets:
+- Assets/MPPlayerModel/Materials/MPchar_face03.mat
+- Assets/MPPlayerModel/Materials/MPchar_pants03.mat
+- Assets/UI/UICanvas.prefab
+- Assets/MPPlayerModel/MPPlayerModel.fbx
+- Assets/Textures/MSCMPLogo.png
+- Assets/MPPlayerModel/Materials/MPchar_shirt06.mat
+- Assets/MPPlayerModel/Textures/MPchar_shirt06.dds
+- Assets/MPPlayerModel/Textures/MPchar_pants03.dds
+- Assets/MPPlayerModel/Textures/MPchar_face03.dds
+- Assets/MPPlayerModel/Textures/MPchar_shirt05.dds
+- Assets/MPPlayerModel/Textures/MPchar_face02.dds
+- Assets/MPPlayerModel/Textures/MPchar_pants02.dds
+Dependencies: []
