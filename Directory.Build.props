@@ -1,0 +1,18 @@
+<Project>
+	<PropertyGroup>
+		 <GAME_PATH>C:\Program Files (x86)\Steam\steamapps\common\My Summer Car</GAME_PATH>
+	</PropertyGroup>
+
+	<Target Name="VerifyMSCPath" BeforeTargets="ResolveAssemblyReferences">
+		<Error Condition="!Exists('$(GAME_PATH)')"
+               Text="Game directory does not exist at the specified path: $(GAME_PATH)!. Check Directory.Build.props file" />
+	</Target>
+
+	<Target Name="CopySteamAPI" AfterTargets="Build">
+		<ItemGroup>
+			<SteamApi Include="$(SolutionDir)\Dependencies\Steamworks SDK\Lib\steam_api64.dll" />
+		</ItemGroup>
+		<Copy SourceFiles="@(SteamApi)" DestinationFolder="$(OutDir)"
+              Condition="!Exists('$(OutDir)\steam_api64.dll')" />
+	</Target>
+</Project>
