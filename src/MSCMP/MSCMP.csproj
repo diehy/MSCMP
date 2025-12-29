@@ -48,22 +48,28 @@
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\0Harmony.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ES2">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\ES2.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="MSCLoader">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\MSCLoader.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="PlayMaker, Version=1.6.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\PlayMaker.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -73,71 +79,17 @@
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(MSCPath)\mysummercar_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Client.cs" />
-    <Compile Include="Development\WorldDumper.cs" />
-    <Compile Include="DevTools.cs" />
-    <Compile Include="Game\Components\ObjectSyncComponent.cs" />
-    <Compile Include="Game\Components\ObjectSyncPlayerComponent.cs" />
-    <Compile Include="Game\Components\PickupableMetaDataComponent.cs" />
-    <Compile Include="Game\EventHook.cs" />
-    <Compile Include="Game\GameCallbacks.cs" />
-    <Compile Include="Game\GameDoorsManager.cs" />
-    <Compile Include="Game\GameVehicleDatabase.cs" />
-    <Compile Include="Game\IGameObjectCollector.cs" />
-    <Compile Include="Game\GamePickupableDatabase.cs" />
-    <Compile Include="Game\GameWeatherManager.cs" />
-    <Compile Include="Game\GameWorld.cs" />
-    <Compile Include="Game\Hooks\PlayMakerActionHooks.cs" />
-    <Compile Include="Game\IObjectSubtype.cs" />
-    <Compile Include="Game\ISyncedObject.cs" />
-    <Compile Include="Game\ObjectSyncManager.cs" />
-    <Compile Include="Game\Objects\AIVehicle.cs" />
-    <Compile Include="Game\LightSwitchManager.cs" />
-    <Compile Include="Game\Objects\Boat.cs" />
-    <Compile Include="Game\Objects\PlayerVehicle.cs" />
-    <Compile Include="Game\Objects\GarageDoor.cs" />
-    <Compile Include="Game\Objects\GameDoor.cs" />
-    <Compile Include="Game\Objects\GamePlayer.cs" />
-    <Compile Include="Game\Objects\LightSwitch.cs" />
-    <Compile Include="Game\Objects\PassengerSeat.cs" />
-    <Compile Include="Game\Objects\Pickupable.cs" />
-    <Compile Include="Game\Objects\PickupableTypes\BeerCase.cs" />
-    <Compile Include="Game\Objects\PickupableTypes\PubFood.cs" />
-    <Compile Include="Game\Objects\PickupableTypes\ShoppingBag.cs" />
-    <Compile Include="Game\Objects\PickupableTypes\Consumable.cs" />
-    <Compile Include="Game\Places\Shop.cs" />
-    <Compile Include="Game\TrafficManager.cs" />
-    <Compile Include="Logger.cs" />
-    <Compile Include="MessagesList.cs" />
     <Compile Include="MSCMP.cs" />
-    <Compile Include="Network\NetMessageHandler.cs" />
-    <Compile Include="Network\NetPickupable.cs" />
-    <Compile Include="Network\NetStatistics.cs" />
-    <Compile Include="Network\PlayerAnimManager.cs" />
-    <Compile Include="UI\Console.cs" />
-    <Compile Include="UI\Handlers\MessageBoxHandler.cs" />
-    <Compile Include="UI\MPGUI.cs" />
-    <Compile Include="Math\QuaternionInterpolator.cs" />
-    <Compile Include="Math\TransformInterpolator.cs" />
-    <Compile Include="Math\Vector3Interpolator.cs" />
-    <Compile Include="MPController.cs" />
-    <Compile Include="Network\INetMessage.cs" />
-    <Compile Include="Network\NetLocalPlayer.cs" />
-    <Compile Include="Network\NetManager.cs" />
-    <Compile Include="Network\NetPlayer.cs" />
-    <Compile Include="Network\NetWorld.cs" />
-    <Compile Include="PlayMakerUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utilities\HTMLWriter.cs" />
-    <Compile Include="Utilities\IMGUIUtils.cs" />
-    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
