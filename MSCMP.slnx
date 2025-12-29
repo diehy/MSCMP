@@ -5,7 +5,10 @@
     <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="src/MSCMPClient/MSCMPClient.csproj">
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="src/MSCMP/MSCMP.csproj">
     <Platform Project="x64" />
   </Project>
   <Project Path="src/MSCMPMessages/MSCMPMessages.csproj">

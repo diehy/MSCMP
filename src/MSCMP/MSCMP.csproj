@@ -116,6 +116,7 @@
     <Compile Include="Game\TrafficManager.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="MessagesList.cs" />
+    <Compile Include="MSCMP.cs" />
     <Compile Include="Network\NetMessageHandler.cs" />
     <Compile Include="Network\NetPickupable.cs" />
     <Compile Include="Network\NetStatistics.cs" />
@@ -130,7 +131,6 @@
     <Compile Include="Network\INetMessage.cs" />
     <Compile Include="Network\NetLocalPlayer.cs" />
     <Compile Include="Network\NetManager.cs" />
-    <Compile Include="Network\NetMessages.generated.cs" />
     <Compile Include="Network\NetPlayer.cs" />
     <Compile Include="Network\NetWorld.cs" />
     <Compile Include="PlayMakerUtils.cs" />
