@@ -1,0 +1,14 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Public Release" />
+    <BuildType Name="Release" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="src/MSCMPClient/MSCMPClient.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="src/MSCMPMessages/MSCMPMessages.csproj">
+    <Platform Project="x64" />
+  </Project>
+</Solution>
