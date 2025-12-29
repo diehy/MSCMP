@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+	<PropertyGroup>
+		<PlatformTarget>x64</PlatformTarget>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<OutDir>$(SolutionDir)\Build\$(Configuration)\</OutDir>
+	</PropertyGroup>
+
+	<!-- You only need to modify MSCPath and/or ModsFolder if you don't use default paths. -->
+	<PropertyGroup>
+		<MSCPath>C:\Program Files (x86)\Steam\steamapps\common\My Summer Car</MSCPath>
+		<ModsFolder>$(MSCPath)\Mods</ModsFolder>
+		<ModReferencesFolder>$(ModsFolder)\References</ModReferencesFolder>
+	</PropertyGroup>
+
+	<Target Name="VerifyMSCPath" BeforeTargets="ResolveAssemblyReferences">
+		<Error Condition="!Exists('$(MSCPath)')"
+               Text="MSC was not found at '$(MSCPath)'. Edit the path in Directory.Build.props, reload the project, and try again."/>
+	</Target>
+	
+	<!-- Copy main mod DLL to Mods folder. -->
+	<Target Name="CopyModToMSC" AfterTargets="Build">
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsFolder)"/>
+	</Target>
+
+	<!-- Copy dependencies to References folder. -->
+	<Target Name="CopyDependenciesToReferencesFolder" AfterTargets="Build">
+		<ItemGroup>
+			<Dependencies Include="@(ReferenceCopyLocalPaths)"
+                           Condition="'%(Extension)' == '.dll' AND 
+                                      '%(Filename)' != '$(TargetName)' AND
+                                      '%(Filename)' != 'MSCLoader' AND
+                                      !$([System.String]::Copy('%(Filename)').StartsWith('System.'))"/>
+		</ItemGroup>
+		<Copy SourceFiles="@(Dependencies)" DestinationFolder="$(ModReferencesFolder)" SkipUnchangedFiles="true"/>
+	</Target>
+
+	<!-- Launch MSC via Steam. -->
+	<Target Name="LaunchMSC" AfterTargets="CopyModToMSC">
+		<Exec Command="start steam://rungameid/516750" IgnoreExitCode="true"/>
+	</Target>
+</Project>
