@@ -8,10 +8,10 @@
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
   </Folder>
-  <Project Path="src/MSCMP/MSCMP.csproj">
+  <Project Path="src/MSCMP/MSCMP.csproj" Id="f58f66ea-7a4f-4e2a-a185-ce02a94eb5d4">
     <Platform Project="x64" />
   </Project>
-  <Project Path="src/MSCMPMessages/MSCMPMessages.csproj">
+  <Project Path="src/MSCMPMessages/MSCMPMessages.csproj" Id="732ab758-6088-4d55-828f-0f46d1847f9f">
     <Platform Project="x64" />
   </Project>
 </Solution>

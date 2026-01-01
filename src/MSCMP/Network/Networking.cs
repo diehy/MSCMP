@@ -15,7 +15,7 @@ namespace MSCMP.Network
         /// <summary> The rate at which network updates are sent. </summary>
         public const float TICK_INTERVAL = 1f / TICK_RATE;
         /// <summary> Conservative MTU to avoid fragmentation. </summary>
-        public const int MAX_PACKET_BUFFER_SIZE = 1024;
+        public const int MAX_MESSAGE_SIZE = 1024;
         /// <summary> The maximum number of connections allowed at once. </summary>
         public const int MAX_CONCURRENT_CONNECTIONS = 12;
 
