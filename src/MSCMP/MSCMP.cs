@@ -1,6 +1,7 @@
 ﻿using MSCLoader;
 using MSCMP.Network;
 using MSCMP.Scene;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 
@@ -14,16 +15,21 @@ namespace MSCMP
         /// <summary> Full mod name. </summary>
         public override string Name => "My Summer Car - Multiplayer";
         /// <summary> Local version. </summary>
-        public override string Version => "1.0";
+        public override string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         /// <summary> Main author/contributors. </summary>
         public override string Author => "diehy";
         /// <summary> Short description of the mod. </summary>
         public override string Description => "Cooperative multiplayer mod for My Summer Car.";
 
-        /// <summary> Container object holding any MonoBehaviours not attached to vanilla objects. </summary>
-        private static GameObject container;
+        /// <summary> Network manager for this client. </summary>
+        public Networking NetManager { get; private set; }
+        /// <summary> Singleton instance. </summary>
+        public static MSCMP Instance { get; private set; }
 
-        /// <summary> Initial initialization and configuration is performed here. </summary>
+        /// <summary> Container object holding any MonoBehaviours not attached to vanilla objects. </summary>
+        private GameObject container;
+
+        /// <summary> Initialization and configuration is performed here. </summary>
         public override void ModSetup()
         {
             // We shouldn't run alongside other MP mods (because that's just a disaster waiting to happen).
@@ -39,11 +45,14 @@ namespace MSCMP
             // Register lifecycle hooks.
             SetupFunction( Setup.OnMenuLoad, Orchestrator.OnMainMenuLoaded );
             SetupFunction( Setup.Update, OnUpdate );
+
+            // Create the network manager.
+            NetManager = new Networking();
         }
 
+        /// <summary> Main update loop. </summary>
         private void OnUpdate()
         {
-            Networking.Update();
         }
 
         /// <summary> Detects whether another multiplayer mod is running. </summary>

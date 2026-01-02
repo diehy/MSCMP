@@ -1,0 +1,28 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="MSC_Debug" />
+    <BuildType Name="MSC_Release" />
+    <BuildType Name="MWC_Debug" />
+    <BuildType Name="MWC_Release" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="src/AmisMP.Shared/AmisMP.Shared.csproj" Id="02214992-a003-4eb8-ad58-59ec113ac700">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="src/MSCMP/MSCMP.csproj" Id="f58f66ea-7a4f-4e2a-a185-ce02a94eb5d4">
+    <BuildType Solution="MWC_Release|*" Project="MSC_Release" />
+    <Platform Project="x64" />
+    <Build Solution="MWC_Debug|*" Project="false" />
+    <Build Solution="MWC_Release|*" Project="false" />
+  </Project>
+  <Project Path="src/MWCMP/MWCMP.csproj" Id="71a4f2df-dedb-4a19-b60a-6b57b4460eb9">
+    <BuildType Solution="MWC_Release|*" Project="MWC_Debug" />
+    <Platform Project="x64" />
+    <Build Solution="MSC_Debug|*" Project="false" />
+    <Build Solution="MSC_Release|*" Project="false" />
+  </Project>
+</Solution>

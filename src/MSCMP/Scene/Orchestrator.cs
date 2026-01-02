@@ -10,7 +10,7 @@ namespace MSCMP.Scene
         /// <summary> Called when the main menu scene loads. </summary>
         public static void OnMainMenuLoaded()
         {
-            // Objects.
+            // Main scene objects we need.
             var scene = GameObject.Find( "Scene" );
             var userInterface = GameObject.Find( "Interface" );
             var activeInterface = GameObject.Find( "InterfaceActive" );
@@ -20,18 +20,16 @@ namespace MSCMP.Scene
             var continueButton = buttonStack.transform.GetChild( 1 ).gameObject;
             var newGameButton = buttonStack.transform.GetChild( 2 ).gameObject;
 
-            // We're going to add a dedicated multiplayer button, so that people aren't forced to play this.
+            // Add a dedicated multiplayer button so that people aren't forced to play this.
             var multiplayerButton = newGameButton.Instantiate( buttonStack.transform );
             multiplayerButton.name = "MultiplayerButton";
 
-            // Calculate shift value for the top buttons to ensure same spacing.
+            // Shift the top two buttons up with identical spacing.
             var shiftValue = -(newGameButton.transform.localPosition - continueButton.transform.localPosition);
-
-            // Set the new positions.
             continueButton.transform.localPosition += shiftValue;
             newGameButton.transform.localPosition += shiftValue;
 
-            // Set the new text.
+            // Set the new button text.
             VanillaUtilities.ChangeTextMeshButtonString( multiplayerButton, "MULTIPLAYER" );
         }
     }
